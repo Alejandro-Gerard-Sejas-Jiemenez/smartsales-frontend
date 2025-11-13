@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://smartsales-backend-paph.onrender.com';
 
 // Crear instancia de axios con configuración
 const api = axios.create({
