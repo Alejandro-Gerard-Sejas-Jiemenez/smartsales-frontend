@@ -6,7 +6,7 @@ import tailwindcss from "@tailwindcss/vite";
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const backendUrl = env.VITE_API_BASE || "http://localhost:8000";
+  const backendUrl = env.VITE_API_BASE || "https://smartsales-backend-paph.onrender.com";
   return {
     plugins: [react(), tailwindcss()],
     server: {
