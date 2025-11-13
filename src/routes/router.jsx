@@ -25,6 +25,7 @@ import RegistroVentaPage from "../pages/dashboard/ventas/RegistroVenta.jsx";
 import HistorialVentasPage from "../pages/dashboard/ventas/HistorialVentas.jsx";
 
 import DashboardIAPage from "../pages/dashboard/analisis/DashboardIA.jsx";
+import ReportesDinamicosPage from "../pages/dashboard/analisis/ReportesDinamicos.jsx";
 
 // Módulo de Avisos
 import AvisosIndex from "../pages/dashboard/avisos/AvisosIndex.jsx";
@@ -73,6 +74,7 @@ const router = createBrowserRouter([
       { path: "ventas/historial", element: <HistorialVentasPage /> },
       // Módulo: Análisis e Inteligencia Artificial
       { path: "analisis/dashboard-ia", element: <DashboardIAPage /> },
+      { path: "analisis/reportes", element: <ReportesDinamicosPage /> },
 
     ]
   },

@@ -11,3 +11,8 @@ export const getPredicciones = (params) =>
   api.get('/api/predicciones/', params);
 
 // (Aquí irán las futuras APIs de Reportes Dinámicos)
+export const generarReporteDinamico = (prompt) => {
+  return api.post('/api/reportes/generar_reporte/', { prompt }, {
+    _fetchFile: true 
+  });
+}

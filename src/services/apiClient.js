@@ -52,6 +52,7 @@ export async function apiFetch(url, options = {}) {
 export async function apiFetchFile(url, options = {}) {
   const token = getToken();
   const headers = {
+    'Content-Type': 'application/json',
     ...(options.headers || {})
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -92,7 +93,12 @@ export const api = {
     }
     return apiFetch(url);
   },
-  post: (u, b) => apiFetch(u, { method: 'POST', body: JSON.stringify(b) }),
+  post: (u, b, opts = {}) => {
+    if (opts._fetchFile) {
+      return apiFetchFile(u, { method: 'POST', body: JSON.stringify(b) });
+    }
+    return apiFetch(u, { method: 'POST', body: JSON.stringify(b) });
+  },
   put: (u, b) => apiFetch(u, { method: 'PUT', body: JSON.stringify(b) }),
   patch: (u, b) => apiFetch(u, { method: 'PATCH', body: JSON.stringify(b) }),
   del: (u) => apiFetch(u, { method: 'DELETE' }),
