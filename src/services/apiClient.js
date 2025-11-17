@@ -1,7 +1,7 @@
 import { getToken, clearAuth } from "./auth.js";
 
-// Configuración simple y directa
-const API_BASE = import.meta.env.VITE_API_BASE || "https://smartsales-backend-paph.onrender.com";
+// Configuración simple y directa (por defecto apunta al backend local en dev)
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
 
 export async function apiFetch(url, options = {}) {

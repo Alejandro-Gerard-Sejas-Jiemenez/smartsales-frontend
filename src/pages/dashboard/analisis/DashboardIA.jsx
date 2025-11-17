@@ -2,12 +2,14 @@ import { useEffect, useState, useMemo } from "react";
 import { getPredicciones } from "../../../services/analisis.service.js";
 // --- CAMBIO: Importamos el nuevo servicio ---
 import { getAnalisisTendencias } from "../../../services/venta.service.js";
-import { getCategorias } from "../../../services/catalogo.service.js";
+import { getCategorias, getProductos } from "../../../services/catalogo.service.js";
+import { getClientes } from "../../../services/cliente.service.js";
 import { 
   BarChart, Bar, LineChart, Line, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
 import toast from 'react-hot-toast';
+import SearchableDropdown from "../../../components/ui/SearchableDropdown.jsx";
 
 // ... (Componente Field sin cambios) ...
 
@@ -23,17 +25,47 @@ export default function DashboardIAPage() {
   const [loadingTendencias, setLoadingTendencias] = useState(false);
   const [predicciones, setPredicciones] = useState([]);
   const [tendencias, setTendencias] = useState([]); // <-- AÑADIDO: Estado para tendencias
+ 
   const [categorias, setCategorias] = useState([]);
-  const [selectedCategoria, setSelectedCategoria] = useState("");
+  const [clientes, setClientes] = useState([]);
+  const [productos, setProductos] = useState([]);
+
+  const [selectedCategoria, setSelectedCategoria] = useState(null); 
+  const [selectedCliente, setSelectedCliente] = useState(null);     
+  const [selectedProducto, setSelectedProducto] = useState(null);    
+ 
   const [mesesAMostrar, setMesesAMostrar] = useState(3);
   const [error, setError] = useState("");
 
-  // Cargar las categorías (sin cambios)
+// Cargar catálogos (Clientes, Productos, Categorías) una sola vez
   useEffect(() => {
     getCategorias()
       .then(data => setCategorias(Array.isArray(data) ? data : []))
       .catch(e => toast.error("Error al cargar categorías"));
+    
+    getClientes()
+      .then(data => setClientes(Array.isArray(data) ? data : []))
+      .catch(e => toast.error("Error al cargar clientes"));
+
+    getProductos()
+      .then(data => setProductos(Array.isArray(data) ? data : []))
+      .catch(e => toast.error("Error al cargar productos"));
   }, []);
+
+  // Los dropdowns esperan objetos con { id, name }
+  const categoriaOptions = useMemo(() => 
+    categorias.map(cat => ({ id: cat.id, name: cat.nombre })),
+  [categorias]);
+  
+  const clienteOptions = useMemo(() => 
+    clientes
+     .filter(cli => cli.cliente_id != null)
+     .map(cli => ({ id: cli.cliente_id, name: `${cli.nombre} ${cli.apellido}` })),
+  [clientes]);
+
+  const productoOptions = useMemo(() => 
+    productos.map(prod => ({ id: prod.id, name: prod.nombre })),
+  [productos]);
 
   // Cargar datos (ahora carga ambas APIs)
   useEffect(() => {
@@ -41,21 +73,30 @@ export default function DashboardIAPage() {
     setLoadingPredicciones(true);
     setError("");
     const params = {};
-    if (selectedCategoria) params.categoria = selectedCategoria;
+    if (selectedCategoria) params.categoria = selectedCategoria.id;
 
     getPredicciones(params)
       .then(data => setPredicciones(Array.isArray(data) ? data : [])) 
       .catch(e => setError("Error al cargar predicciones: " + e.message))
       .finally(() => setLoadingPredicciones(false));
 
-    // 2. Cargar Tendencias Históricas (solo se carga una vez)
+  }, [selectedCategoria]); // Solo se recarga si la categoría cambia
+
+  //Cargar tendencias
+  useEffect(() => {
     setLoadingTendencias(true);
-    getAnalisisTendencias()
+    
+    const params = {};
+    if (selectedCategoria) params.categoria_id = selectedCategoria.id;
+    if (selectedCliente) params.cliente_id = selectedCliente.id;
+    if (selectedProducto) params.producto_id = selectedProducto.id  ;
+
+    getAnalisisTendencias(params) // <-- Pasa todos los filtros
       .then(data => setTendencias(Array.isArray(data) ? data : []))
       .catch(e => setError("Error al cargar tendencias: " + e.message))
       .finally(() => setLoadingTendencias(false));
 
-  }, [selectedCategoria]); // Solo se recarga si la categoría cambia
+  }, [selectedCategoria, selectedCliente, selectedProducto]); // <-- Depende de 3 filtros
 
   // --- Datos para Gráfica de PREDICCIONES ---
   const prediccionesChartData = useMemo(() => {
@@ -88,9 +129,9 @@ export default function DashboardIAPage() {
   }, [predicciones, mesesAMostrar, selectedCategoria]);
 
   // --- Datos para Gráfica de TENDENCIAS (Historial) ---
-  const tendenciasChartData = useMemo(() => {
+const tendenciasChartData = useMemo(() => {
     return tendencias.map(t => ({
-      name: new Date(t.mes + '-02').toLocaleString('es-BO', { month: 'short', year: 'numeric' }), // '-02' para evitar zonas horarias
+      name: new Date(t.mes + '-02').toLocaleString('es-BO', { month: 'short', year: 'numeric' }),
       "Cantidad de Ventas": t.cantidad_ventas,
       "Monto Total (Bs)": parseFloat(t.monto_total),
     }));
@@ -107,22 +148,18 @@ export default function DashboardIAPage() {
         Análisis y Predicción de Ventas
       </h1>
 
-      {/* --- Barra de Filtros --- */}
+      {/* --- Barra de Filtros (CON TODOS LOS FILTROS) --- */}
       <div className="p-6 space-y-4 border rounded-3xl bg-white shadow-sm">
         <h2 className="text-xl font-semibold">Filtros del Dashboard</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Field label="Categoría">
-            <select
-              name="categoria"
+          
+          <Field label="Categoría (Predicción y Tendencia)">
+            <SearchableDropdown
+              items={categoriaOptions}
               value={selectedCategoria}
-              onChange={(e) => setSelectedCategoria(e.target.value)}
-              className="input-base"
-            >
-              <option value="">Todas las categorías</option>
-              {categorias.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.nombre}</option>
-              ))}
-            </select>
+              onChange={setSelectedCategoria}
+              placeholder="Todas las categorías"
+            />
           </Field>
           
           <Field label="Período de Predicción">
@@ -137,6 +174,27 @@ export default function DashboardIAPage() {
               ))}
             </select>
           </Field>
+          
+          {/* --- AÑADIDO: Filtro de Clientes --- */}
+          <Field label="Cliente (Solo Tendencia)">
+            <SearchableDropdown
+              items={clienteOptions}
+              value={selectedCliente}
+              onChange={setSelectedCliente}
+              placeholder="Todos los clientes"
+            />
+          </Field>
+
+          {/* --- AÑADIDO: Filtro de Productos --- */}
+          <Field label="Producto (Solo Tendencia)">
+            <SearchableDropdown
+              items={productoOptions}
+              value={selectedProducto}
+              onChange={setSelectedProducto}
+              placeholder="Todos los productos"
+            />
+          </Field>
+          
         </div>
       </div>
       
@@ -149,12 +207,10 @@ export default function DashboardIAPage() {
       {/* --- Tarjeta de Total --- */}
       <div className="p-6 border rounded-3xl bg-indigo-600 text-white shadow">
          <h3 className="text-lg font-medium text-indigo-100">Total Predicho ({mesesAMostrar} Meses)</h3>
-         <p className="text-4xl font-bold">
-           {totalPredicho.toFixed(2)} Bs
-         </p>
+         <p className="text-4xl font-bold">{totalPredicho.toFixed(2)} Bs</p>
          <p className="text-sm text-indigo-200 mt-1">
            {selectedCategoria 
-             ? `Para: ${categorias.find(c => c.id === parseInt(selectedCategoria))?.nombre}`
+             ? `Para: ${selectedCategoria.name}` // <-- Usa .name del objeto
              : "Para: Todas las categorías (Sumatoria)"
            }
          </p>
@@ -210,18 +266,18 @@ export default function DashboardIAPage() {
         )}
       </div>
       
-      {/* --- GRÁFICA DE TENDENCIAS (CORREGIDA) --- */}
-      <div className="w-full h-96 p-6 border rounded-3xl bg-white shadow-sm flex flex-col"> {/* <-- 1. Añadido 'flex flex-col' */}
-        <h3 className="text-lg font-semibold text-gray-700 mb-4 flex-shrink-0"> {/* <-- 2. Añadido 'flex-shrink-0' */}
+      {/* --- Gráfica de Barras - TENDENCIAS HISTÓRICAS (Ahora es dinámica) --- */}
+      <div className="w-full h-96 p-6 border rounded-3xl bg-white shadow-sm flex flex-col">
+        <h3 className="text-lg font-semibold text-gray-700 mb-4 flex-shrink-0">
           Tendencias Históricas (Últimos 12 Meses)
         </h3>
         {loadingTendencias ? (
           <div className="flex-grow flex justify-center items-center h-full text-gray-500">Cargando tendencias...</div>
         ) : tendenciasChartData.length === 0 ? (
-           <div className="flex-grow flex justify-center items-center h-full text-gray-500">No hay datos históricos para mostrar.</div>
+           <div className="flex-grow flex justify-center items-center h-full text-gray-500">No hay datos históricos para los filtros seleccionados.</div>
         ) : (
-          <div className="flex-grow w-full h-full"> {/* <-- 3. Contenedor 'flex-grow' */}
-            <ResponsiveContainer width="100%" height="100%"> {/* <-- 4. Cambiado height a "100%" */}
+          <div className="flex-grow w-full h-full">
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={tendenciasChartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />

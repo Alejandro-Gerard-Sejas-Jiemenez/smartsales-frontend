@@ -173,7 +173,9 @@ export default function HistorialVentasPage() {
               className="input-base"
             >
               <option value="">Todos los clientes</option>
-              {clientes.map(cli => (
+              {clientes
+                .filter(cli => cli.cliente_id != null) // <-- Añade este filtro
+                .map(cli => (
                 <option key={cli.cliente_id} value={cli.cliente_id}>
                   {cli.nombre} {cli.apellido}
                 </option>
