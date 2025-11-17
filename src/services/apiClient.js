@@ -1,7 +1,7 @@
 import { getToken, clearAuth } from "./auth.js";
 
 // Configuración simple y directa
-const API_BASE = import.meta.env.VITE_API_BASE || "http://ec2-3-134-106-25.us-east-2.compute.amazonaws.com:8000";//"https://smartsales-backend-paph.onrender.com";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/";
 
 export async function apiFetch(url, options = {}) {
   const token = getToken();
